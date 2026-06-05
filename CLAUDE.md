@@ -40,3 +40,23 @@
   - `/unfreeze`
   - `/gstack-upgrade`
   - `/learn`
+
+在这个仓库中进行工程工作时，请使用 gstack 工作流。
+
+默认工作流：
+1. 如果需求比较模糊，先从 `/office-hours` 或 `/spec` 开始。
+2. 如果是先建 GitHub Issue 的工作方式，使用 `/spec`。当我只想要 ticket 时，优先使用 `/spec --no-execute`；只有在我明确要求你创建 issue 并开始实现时，才使用 `/spec --execute`。
+3. 在编写非 trivial 功能之前，先运行 `/autoplan` 或相应的 plan review。
+4. 只有在计划获批之后，或 `/autoplan` 走到最终批准节点之后，才开始实现。
+5. 实现完成后，运行 `/review`。
+6. 如果是 web 或 UI 变更，使用本地 / 预发地址运行 `/qa`；如果没有可用 URL，则使用可感知 diff 的 `/qa`。
+7. 当分支准备就绪后，运行 `/ship` 来完成测试、review、commit、push，以及创建或更新 GitHub PR。
+8. 除非我明确要求 `/land-and-deploy`，否则不要合并到 `main`。
+9. 不要 force push。
+10. 如果涉及破坏性数据变更、安全敏感变更、不可逆操作、不明确的产品取舍、重大范围变化，或你无法安全修复的失败测试，请先停下来问我。
+
+GitHub 协作规则：
+- 对需要追踪的规格说明，使用 GitHub Issues。
+- 使用 feature branch，不要直接提交到 base branch。
+- 通过 PR 进行评审。
+- 在 PR 描述中包含测试证据和已知限制。
