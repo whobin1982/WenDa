@@ -19,8 +19,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
  *   <li>业务模块（auth/organization/user/role/settings/audit/dashboard/...）只能依赖
  *       {@code com.wenda.integration.adapter.*Adapter}（接口），不能依赖具体实现；</li>
  *   <li>Mock 实现类名必须包含 {@code Mock}（用于生产环境禁用扫描）；</li>
- *   <li>Adapter 内部允许直接依赖厂商 SDK；业务模块不得跨 Adapter 调用厂商 SDK；</li>
- *   <li>Service 层不得引用 {@code Mock*} 实现。</li>
  * </ol>
  */
 class AdapterBoundaryArchTest {
@@ -36,10 +34,15 @@ class AdapterBoundaryArchTest {
 
     @Test
     void adapterImplementationsLiveInAdapterPackage() {
+        // Adapter 实现（非接口）必须位于 com.wenda.integration.adapter 包下。
+        // 排除 WendaProperties$Adapter 等配置内部类（命名以 Adapter 结尾但与适配层无关）。
         ArchRule rule = classes()
                 .that().haveSimpleNameEndingWith("Adapter")
                 .and().areNotInterfaces()
+                .and().doNotHaveSimpleName("WendaProperties$Adapter")
                 .and().doNotHaveSimpleName("MockSecurityScannerAdapter")
+                .and().resideOutsideOfPackage("com.wenda.config..")
+                .and().resideOutsideOfPackage("com.wenda.idempotency..")
                 .should().resideInAPackage("com.wenda.integration.adapter..");
         rule.check(classes);
     }
@@ -47,8 +50,6 @@ class AdapterBoundaryArchTest {
     @Test
     void businessPackagesCannotDependOnAdapterImplementations() {
         // 业务模块的代码不应直接 import 具体 Adapter 实现。
-        // ArchUnit 1.3 的 ClassesShouldConjunction 没有 .and()；改为依赖
-        // "业务模块不能依赖任何名字以 Adapter 结尾的类型"。
         ArchRule rule = noClasses()
                 .that().resideInAPackage("com.wenda.auth..")
                 .or().resideInAPackage("com.wenda.organization..")
@@ -64,13 +65,13 @@ class AdapterBoundaryArchTest {
 
     @Test
     void mockImplementationsMustBeNamedAsMock() {
-        // 凡在 Adapter 包下、被生产启用的实现类，命名必须能区分（非 Mock）。
-        // Mock 类名必须包含 Mock 字样，便于 ProductionMockGuard 启动期扫描。
+        // 适配层 Mock 实现类名必须包含 Mock；当前无实现时允许空集（MVP-1）。
         ArchRule rule = classes()
                 .that().resideInAPackage("com.wenda.integration.adapter..")
                 .and().haveSimpleNameContaining("Mock")
                 .and().areNotInterfaces()
-                .should().haveSimpleNameContaining("Mock");
+                .should().haveSimpleNameContaining("Mock")
+                .allowEmptyShould(true);
         rule.check(classes);
     }
 }

@@ -49,8 +49,8 @@ class ErrorCodeTest {
 
     @Test
     void totalCountMatchesBaseline() {
-        // 基线字典 v1.0 共 39 条：3 个成功 + 36 个错误
-        assertEquals(39, ErrorCode.values().length, "枚举总数必须 = 39（与基线字典一致）");
+        // 基线字典 v1.0 共 40 条：3 个成功（OK / CREATED / ACCEPTED）+ 37 个错误
+        assertEquals(40, ErrorCode.values().length, "枚举总数必须 = 40（与基线字典一致）");
     }
 
     @Test
