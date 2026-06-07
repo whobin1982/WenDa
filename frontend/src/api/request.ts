@@ -105,7 +105,7 @@ instance.interceptors.response.use(
     } else if (isForbidden(code)) {
       ElMessage.error(body?.message || '无权限访问。')
     } else if (code === ErrorCode.VALIDATION_ERROR) {
-      const field = body.details?.[0]?.field
+      const field = body?.details && body.details[0] ? body.details[0].field : undefined
       ElMessage.error((field ? `${field}: ` : '') + (body?.message || '参数校验失败。'))
     } else {
       ElMessage.error(body?.message || '服务异常，请稍后重试。')
