@@ -59,4 +59,5 @@ jobs:
       - name: OSG document check
         run: |
           test -f docs/dev/baseline_digest.md || { echo "缺少 baseline_digest.md"; exit 1; }
-          grep -q "RG-OSG-007" docs/dev/baseline_digest.md || { echo "baseline_digest 未引用 RG-OSG-007"; exit 1; }
+          grep -qE "RG-OSG-00[0-9]|RG-OSG-01[0-9]" docs/dev/baseline_digest.md || { echo "baseline_digest 未引用 RG-OSG-*"; exit 1; }
+          grep -qE "Mock 禁用|prod-mock-disabled|RG-OSG-007" docs/dev/baseline_digest.md || { echo "baseline_digest 未涵盖 Mock 禁用"; exit 1; }

@@ -1,4 +1,4 @@
-import { wendaRequest, authStore, type AuthBundle } from './request'
+import { wendaRequest, authStore, getStoredAuth, type AuthBundle } from './request'
 
 export interface LoginRequest {
   schoolCode: string
@@ -59,3 +59,6 @@ export async function logout(): Promise<void> {
 export async function fetchMe(): Promise<AuthUser> {
   return wendaRequest<AuthUser>({ method: 'GET', url: '/auth/me' })
 }
+
+// Re-export helpers for router / store consumers
+export { getStoredAuth, type AuthBundle }

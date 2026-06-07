@@ -10,7 +10,7 @@
 
 import axios, { AxiosError, type AxiosInstance, type AxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
-import { ApiResponse, ErrorCode, isAuthError, isForbidden } from './errorCodes'
+import { type ApiResponse, ErrorCode, isAuthError, isForbidden } from './errorCodes'
 
 const STORAGE_AUTH_KEY = 'wenda.auth'
 const STORAGE_IDEMPOTENCY_PREFIX = 'wenda.idempotency.'
@@ -24,7 +24,7 @@ export interface AuthBundle {
   roles: string[]
 }
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+const baseURL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api/v1'
 
 const instance: AxiosInstance = axios.create({
   baseURL,
@@ -88,7 +88,7 @@ instance.interceptors.request.use((config) => {
 
 instance.interceptors.response.use(
   (resp) => {
-    const body = resp.data as ApiResponse<unknown>
+    const body = resp.data as ApiResponse<unknown> | undefined
     // 成功后清理该 URL 的幂等键，便于用户重试时拿到新键
     if (body && body.success && resp.config.method && resp.config.url) {
       clearIdempotency(resp.config.method, resp.config.url)
