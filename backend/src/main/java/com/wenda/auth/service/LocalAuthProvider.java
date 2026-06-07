@@ -73,7 +73,7 @@ public class LocalAuthProvider implements AuthenticationProvider {
         }
         var cred = credentialRepository.findByUserId(user.id())
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "账号未设置本地密码。"));
-        if (cred.lockedUntil() != null && cred.lockedUntil().isAfter(Instant.now())) {
+        if (cred.lockedUntil() != null && cred.lockedUntil().toInstant().isAfter(Instant.now())) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "账号暂时锁定，请稍后重试。");
         }
         if (!passwordEncoder.matches(password, cred.passwordHash())) {

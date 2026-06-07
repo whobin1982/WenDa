@@ -3,7 +3,7 @@ package com.wenda.response;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.wenda.error.BusinessException;
 import com.wenda.error.ErrorCode;
-import com.wenda.request.RequestContextHolder;
+import com.wenda.context.RequestContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;

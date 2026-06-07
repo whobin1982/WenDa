@@ -2,8 +2,6 @@ package com.wenda.context;
 
 import com.wenda.config.RequestContextFilter;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Optional;
 import java.util.Set;
@@ -65,14 +63,16 @@ public final class RequestContextHolder {
     public static Set<String> roles() { return ROLES.get(); }
 
     public static HttpServletRequest currentRequest() {
-        var attrs = RequestContextHolder.getRequestAttributes();
-        if (attrs instanceof ServletRequestAttributes sra) {
+        var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        if (attrs instanceof org.springframework.web.context.request.ServletRequestAttributes sra) {
             return sra.getRequest();
         }
         return null;
     }
 
     public static String currentIdempotencyKey() {
-        return Optional.ofNullable(currentRequest()).map(HttpServletRequest::getHeader).orElse(null);
+        HttpServletRequest req = currentRequest();
+        if (req == null) return null;
+        return req.getHeader("Idempotency-Key");
     }
 }

@@ -1,8 +1,12 @@
 package com.wenda.settings.repository;
 
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,22 +20,35 @@ public class SettingsRepository {
     }
 
     // ===== school_quality_rules =====
+    public record QualityRulesRow(UUID schoolId, int minCredits, int maxCredits,
+                                  BigDecimal minPracticeRatio, int maxCoursePerTerm,
+                                  String minSupportDegree, String thresholdsJson, long version) {}
+
     public Optional<QualityRulesRow> getQualityRules(UUID schoolId) {
-        var rows = jdbc.query(
-                "SELECT school_id, min_credits, max_credits, min_practice_ratio, max_course_per_term, "
-                        + "min_support_degree, thresholds_json, version "
-                        + "FROM school_quality_rules WHERE school_id = ?",
-                (rs, i) -> new QualityRulesRow(
-                        (UUID) rs.getObject("school_id"),
-                        rs.getInt("min_credits"),
-                        rs.getInt("max_credits"),
-                        rs.getBigDecimal("min_practice_ratio"),
-                        rs.getInt("max_course_per_term"),
-                        rs.getString("min_support_degree"),
-                        rs.getString("thresholds_json"),
-                        rs.getLong("version")),
-                schoolId);
-        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+        try {
+            QualityRulesRow row = jdbc.queryForObject(
+                    "SELECT school_id, min_credits, max_credits, min_practice_ratio, "
+                            + "max_course_per_term, min_support_degree, thresholds_json, version "
+                            + "FROM school_quality_rules WHERE school_id = ?",
+                    new RowMapper<QualityRulesRow>() {
+                        @Override
+                        public QualityRulesRow mapRow(ResultSet rs, int rowNum) throws SQLException {
+                            return new QualityRulesRow(
+                                    (UUID) rs.getObject("school_id"),
+                                    rs.getInt("min_credits"),
+                                    rs.getInt("max_credits"),
+                                    rs.getBigDecimal("min_practice_ratio"),
+                                    rs.getInt("max_course_per_term"),
+                                    rs.getString("min_support_degree"),
+                                    rs.getString("thresholds_json"),
+                                    rs.getLong("version"));
+                        }
+                    },
+                    schoolId);
+            return Optional.ofNullable(row);
+        } catch (org.springframework.dao.EmptyResultDataAccessException ex) {
+            return Optional.empty();
+        }
     }
 
     public QualityRulesRow upsertQualityRules(QualityRulesRow row) {
@@ -49,36 +66,30 @@ public class SettingsRepository {
                         + "version = school_quality_rules.version + 1",
                 row.schoolId(), row.minCredits(), row.maxCredits(), row.minPracticeRatio(),
                 row.maxCoursePerTerm(), row.minSupportDegree(), row.thresholdsJson(),
-                row.updatedBy(), row.version());
+                null, row.version());
         return getQualityRules(row.schoolId()).orElseThrow();
     }
 
-    public record QualityRulesRow(UUID schoolId, int minCredits, int maxCredits,
-                                  java.math.BigDecimal minPracticeRatio, int maxCoursePerTerm,
-                                  String minSupportDegree, String thresholdsJson, long version) {
-        public QualityRulesRow withVersion(long v) {
-            return new QualityRulesRow(schoolId, minCredits, maxCredits, minPracticeRatio,
-                    maxCoursePerTerm, minSupportDegree, thresholdsJson, v);
-        }
-        public QualityRulesRow withUpdatedBy(UUID u) {
-            return new QualityRulesRow(schoolId, minCredits, maxCredits, minPracticeRatio,
-                    maxCoursePerTerm, minSupportDegree, thresholdsJson, version);
-        }
-    }
-
     // ===== course_code_policy =====
+    public record CourseCodePolicyRow(UUID schoolId, boolean allowTempCode, String tempCodePrefix,
+                                      int tempCodeTtlDays, long version) {}
+
     public Optional<CourseCodePolicyRow> getCourseCodePolicy(UUID schoolId) {
-        var rows = jdbc.query(
-                "SELECT school_id, allow_temp_code, temp_code_prefix, temp_code_ttl_days, version "
-                        + "FROM course_code_policy WHERE school_id = ?",
-                (rs, i) -> new CourseCodePolicyRow(
-                        (UUID) rs.getObject("school_id"),
-                        rs.getBoolean("allow_temp_code"),
-                        rs.getString("temp_code_prefix"),
-                        rs.getInt("temp_code_ttl_days"),
-                        rs.getLong("version")),
-                schoolId);
-        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+        try {
+            CourseCodePolicyRow row = jdbc.queryForObject(
+                    "SELECT school_id, allow_temp_code, temp_code_prefix, temp_code_ttl_days, version "
+                            + "FROM course_code_policy WHERE school_id = ?",
+                    (rs, i) -> new CourseCodePolicyRow(
+                            (UUID) rs.getObject("school_id"),
+                            rs.getBoolean("allow_temp_code"),
+                            rs.getString("temp_code_prefix"),
+                            rs.getInt("temp_code_ttl_days"),
+                            rs.getLong("version")),
+                    schoolId);
+            return Optional.ofNullable(row);
+        } catch (org.springframework.dao.EmptyResultDataAccessException ex) {
+            return Optional.empty();
+        }
     }
 
     public CourseCodePolicyRow upsertCourseCodePolicy(CourseCodePolicyRow row) {
@@ -92,37 +103,39 @@ public class SettingsRepository {
                         + "updated_by = EXCLUDED.updated_by, updated_at = now(), "
                         + "version = course_code_policy.version + 1",
                 row.schoolId(), row.allowTempCode(), row.tempCodePrefix(), row.tempCodeTtlDays(),
-                row.updatedBy(), row.version());
+                null, row.version());
         return getCourseCodePolicy(row.schoolId()).orElseThrow();
     }
 
-    public record CourseCodePolicyRow(UUID schoolId, boolean allowTempCode, String tempCodePrefix,
-                                      int tempCodeTtlDays, long version) {
-        public CourseCodePolicyRow withVersion(long v) {
-            return new CourseCodePolicyRow(schoolId, allowTempCode, tempCodePrefix, tempCodeTtlDays, v);
-        }
-    }
-
     // ===== school_ai_settings =====
+    public record AISettingsRow(UUID schoolId, String externalProviderCode, String externalModelId,
+                                boolean externalEnabled, boolean studentDataOutbound,
+                                String promptVersion, String schemaVersion, int quotaPerDay,
+                                String approvalRecordId, long version) {}
+
     public Optional<AISettingsRow> getAISettings(UUID schoolId) {
-        var rows = jdbc.query(
-                "SELECT school_id, external_provider_code, external_model_id, external_enabled, "
-                        + "student_data_outbound, prompt_version, schema_version, quota_per_day, "
-                        + "approval_record_id, version "
-                        + "FROM school_ai_settings WHERE school_id = ?",
-                (rs, i) -> new AISettingsRow(
-                        (UUID) rs.getObject("school_id"),
-                        rs.getString("external_provider_code"),
-                        rs.getString("external_model_id"),
-                        rs.getBoolean("external_enabled"),
-                        rs.getBoolean("student_data_outbound"),
-                        rs.getString("prompt_version"),
-                        rs.getString("schema_version"),
-                        rs.getInt("quota_per_day"),
-                        rs.getString("approval_record_id"),
-                        rs.getLong("version")),
-                schoolId);
-        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+        try {
+            AISettingsRow row = jdbc.queryForObject(
+                    "SELECT school_id, external_provider_code, external_model_id, external_enabled, "
+                            + "student_data_outbound, prompt_version, schema_version, quota_per_day, "
+                            + "approval_record_id, version "
+                            + "FROM school_ai_settings WHERE school_id = ?",
+                    (rs, i) -> new AISettingsRow(
+                            (UUID) rs.getObject("school_id"),
+                            rs.getString("external_provider_code"),
+                            rs.getString("external_model_id"),
+                            rs.getBoolean("external_enabled"),
+                            rs.getBoolean("student_data_outbound"),
+                            rs.getString("prompt_version"),
+                            rs.getString("schema_version"),
+                            rs.getInt("quota_per_day"),
+                            rs.getString("approval_record_id"),
+                            rs.getLong("version")),
+                    schoolId);
+            return Optional.ofNullable(row);
+        } catch (org.springframework.dao.EmptyResultDataAccessException ex) {
+            return Optional.empty();
+        }
     }
 
     public AISettingsRow upsertAISettings(AISettingsRow row) {
@@ -145,26 +158,27 @@ public class SettingsRepository {
                 row.schoolId(), row.externalProviderCode(), row.externalModelId(),
                 row.externalEnabled(), row.studentDataOutbound(), row.promptVersion(),
                 row.schemaVersion(), row.quotaPerDay(), row.approvalRecordId(),
-                row.updatedBy(), row.version());
+                null, row.version());
         return getAISettings(row.schoolId()).orElseThrow();
     }
 
-    public record AISettingsRow(UUID schoolId, String externalProviderCode, String externalModelId,
-                                boolean externalEnabled, boolean studentDataOutbound,
-                                String promptVersion, String schemaVersion, int quotaPerDay,
-                                String approvalRecordId, long version) {}
-
     // ===== school_ability_level_settings =====
+    public record AbilityLevelsRow(UUID schoolId, String levelsJson, long version) {}
+
     public Optional<AbilityLevelsRow> getAbilityLevels(UUID schoolId) {
-        var rows = jdbc.query(
-                "SELECT school_id, levels_json, version "
-                        + "FROM school_ability_level_settings WHERE school_id = ?",
-                (rs, i) -> new AbilityLevelsRow(
-                        (UUID) rs.getObject("school_id"),
-                        rs.getString("levels_json"),
-                        rs.getLong("version")),
-                schoolId);
-        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+        try {
+            AbilityLevelsRow row = jdbc.queryForObject(
+                    "SELECT school_id, levels_json, version "
+                            + "FROM school_ability_level_settings WHERE school_id = ?",
+                    (rs, i) -> new AbilityLevelsRow(
+                            (UUID) rs.getObject("school_id"),
+                            rs.getString("levels_json"),
+                            rs.getLong("version")),
+                    schoolId);
+            return Optional.ofNullable(row);
+        } catch (org.springframework.dao.EmptyResultDataAccessException ex) {
+            return Optional.empty();
+        }
     }
 
     public AbilityLevelsRow upsertAbilityLevels(AbilityLevelsRow row) {
@@ -175,24 +189,29 @@ public class SettingsRepository {
                         + "levels_json = EXCLUDED.levels_json, "
                         + "updated_by = EXCLUDED.updated_by, updated_at = now(), "
                         + "version = school_ability_level_settings.version + 1",
-                row.schoolId(), row.levelsJson(), row.updatedBy(), row.version());
+                row.schoolId(), row.levelsJson(), null, row.version());
         return getAbilityLevels(row.schoolId()).orElseThrow();
     }
 
-    public record AbilityLevelsRow(UUID schoolId, String levelsJson, long version) {}
-
     // ===== growth_warning_rules =====
+    public record WarningRulesRow(UUID schoolId, String rulesJson, boolean notificationEmail,
+                                  long version) {}
+
     public Optional<WarningRulesRow> getWarningRules(UUID schoolId) {
-        var rows = jdbc.query(
-                "SELECT school_id, rules_json, notification_email, version "
-                        + "FROM growth_warning_rules WHERE school_id = ?",
-                (rs, i) -> new WarningRulesRow(
-                        (UUID) rs.getObject("school_id"),
-                        rs.getString("rules_json"),
-                        rs.getBoolean("notification_email"),
-                        rs.getLong("version")),
-                schoolId);
-        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
+        try {
+            WarningRulesRow row = jdbc.queryForObject(
+                    "SELECT school_id, rules_json, notification_email, version "
+                            + "FROM growth_warning_rules WHERE school_id = ?",
+                    (rs, i) -> new WarningRulesRow(
+                            (UUID) rs.getObject("school_id"),
+                            rs.getString("rules_json"),
+                            rs.getBoolean("notification_email"),
+                            rs.getLong("version")),
+                    schoolId);
+            return Optional.ofNullable(row);
+        } catch (org.springframework.dao.EmptyResultDataAccessException ex) {
+            return Optional.empty();
+        }
     }
 
     public WarningRulesRow upsertWarningRules(WarningRulesRow row) {
@@ -204,11 +223,7 @@ public class SettingsRepository {
                         + "notification_email = EXCLUDED.notification_email, "
                         + "updated_by = EXCLUDED.updated_by, updated_at = now(), "
                         + "version = growth_warning_rules.version + 1",
-                row.schoolId(), row.rulesJson(), row.notificationEmail(), row.updatedBy(),
-                row.version());
+                row.schoolId(), row.rulesJson(), row.notificationEmail(), null, row.version());
         return getWarningRules(row.schoolId()).orElseThrow();
     }
-
-    public record WarningRulesRow(UUID schoolId, String rulesJson, boolean notificationEmail,
-                                  long version) {}
 }

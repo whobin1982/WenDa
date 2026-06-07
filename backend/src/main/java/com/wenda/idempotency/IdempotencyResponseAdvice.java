@@ -1,6 +1,7 @@
 package com.wenda.idempotency;
 
-import com.wenda.request.RequestContextHolder;
+import com.wenda.config.WendaProperties;
+import com.wenda.context.RequestContextHolder;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -38,7 +39,8 @@ public class IdempotencyResponseAdvice implements ResponseBodyAdvice<Object> {
                                   Class<? extends HttpMessageConverter<?>> selectedConverterType,
                                   ServerHttpRequest request, ServerHttpResponse response) {
         if (!(request instanceof ServletServerHttpRequest sreq)) return body;
-        if (request.getMethod() == null || !"POST".equalsIgnoreCase(request.getMethod())) return body;
+        if (request.getMethod() == null
+                || !"POST".equalsIgnoreCase(request.getMethod().name())) return body;
         String key = sreq.getServletRequest().getHeader(properties.getRequest().getHeader().getIdempotencyKey());
         if (key == null || key.isBlank()) return body;
         UUID userId = RequestContextHolder.userId();
