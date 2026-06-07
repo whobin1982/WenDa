@@ -325,14 +325,22 @@ class IdempotencyBehaviorIT {
         assertEquals(3, total, "DB 应有 3 条 (schoolId,userId,key) 不同的记录");
 
         // 三个 college 在三个不同 school
-        long s1 = jdbc.queryForObject(
+        Long s1 = jdbc.queryForObject(
                 "SELECT count(*) FROM colleges WHERE school_id = ? AND college_code = 'IT-C-COLLEGE' AND archived_at IS NULL",
                 Long.class, schoolId);
-        long s2 = jdbc.queryForObject(
+        Long s2 = jdbc.queryForObject(
                 "SELECT count(*) FROM colleges WHERE school_id = ? AND college_code = 'IT-C-COLLEGE' AND archived_at IS NULL",
                 Long.class, school2Id);
-        assertEquals(1, s1, "school1 应有 1 条");
-        assertEquals(1, s2, "school2 应有 1 条");
-        assertNotEquals(s1, s2, "（两个 school 计数相等但是不同 school_id，不冲突）");
+        assertEquals(Long.valueOf(1), s1, "school1 应有 1 条");
+        assertEquals(Long.valueOf(1), s2, "school2 应有 1 条");
+        // s1 和 s2 即使数值相同，也来自不同 schoolId；用更严格的可见性断言
+        Long s1Id = jdbc.queryForObject(
+                "SELECT id FROM colleges WHERE school_id = ? AND college_code = 'IT-C-COLLEGE' AND archived_at IS NULL",
+                Long.class, schoolId);
+        Long s2Id = jdbc.queryForObject(
+                "SELECT id FROM colleges WHERE school_id = ? AND college_code = 'IT-C-COLLEGE' AND archived_at IS NULL",
+                Long.class, school2Id);
+        org.junit.jupiter.api.Assertions.assertNotEquals(s1Id, s2Id,
+                "两个 school 的 college id 必须不同（即使数量相同）");
     }
 }
