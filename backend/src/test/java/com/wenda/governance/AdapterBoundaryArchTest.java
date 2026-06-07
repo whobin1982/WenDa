@@ -36,6 +36,7 @@ class AdapterBoundaryArchTest {
     void adapterImplementationsLiveInAdapterPackage() {
         // Adapter 实现（非接口）必须位于 com.wenda.integration.adapter 包下。
         // 排除 WendaProperties$Adapter 等配置内部类（命名以 Adapter 结尾但与适配层无关）。
+        // MVP-1 暂无具体实现：允许空集（实现落地时自动生效）。
         ArchRule rule = classes()
                 .that().haveSimpleNameEndingWith("Adapter")
                 .and().areNotInterfaces()
@@ -43,7 +44,8 @@ class AdapterBoundaryArchTest {
                 .and().doNotHaveSimpleName("MockSecurityScannerAdapter")
                 .and().resideOutsideOfPackage("com.wenda.config..")
                 .and().resideOutsideOfPackage("com.wenda.idempotency..")
-                .should().resideInAPackage("com.wenda.integration.adapter..");
+                .should().resideInAPackage("com.wenda.integration.adapter..")
+                .allowEmptyShould(true);
         rule.check(classes);
     }
 
