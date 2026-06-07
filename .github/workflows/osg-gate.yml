@@ -1,0 +1,55 @@
+name: osg-gate
+
+on:
+  push:
+    branches: [main, feature/**]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  license-and-sbom:
+    name: Dependency License + SBOM (OSG)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Maven license check
+        working-directory: backend
+        run: |
+          mvn -B -ntp license:check || {
+            echo "::error::Maven license check failed（基线 RG-OSG-003）"
+            exit 1
+          }
+
+      - name: Generate SBOM (CycloneDX)
+        working-directory: backend
+        run: |
+          mvn -B -ntp org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom -DoutputFormat=json -DoutputName=bom || true
+          mkdir -p sbom
+          cp -f target/bom.json sbom/backend-bom.cdx.json 2>/dev/null || true
+
+      - name: Upload SBOM
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-sbom
+          path: backend/sbom/
+          if-no-files-found: ignore
+
+      - name: OSG document check
+        run: |
+          test -f docs/dev/baseline_digest.md || { echo "缺少 baseline_digest.md"; exit 1; }
+          grep -q "RG-OSG-007" docs/dev/baseline_digest.md || { echo "baseline_digest 未引用 RG-OSG-007"; exit 1; }
