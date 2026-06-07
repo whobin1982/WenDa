@@ -46,7 +46,9 @@ class AdapterBoundaryArchTest {
 
     @Test
     void businessPackagesCannotDependOnAdapterImplementations() {
-        // 业务模块的代码不应直接 import 具体 Adapter 实现（除 integration 自身）
+        // 业务模块的代码不应直接 import 具体 Adapter 实现。
+        // ArchUnit 1.3 的 ClassesShouldConjunction 没有 .and()；改为依赖
+        // "业务模块不能依赖任何名字以 Adapter 结尾的类型"。
         ArchRule rule = noClasses()
                 .that().resideInAPackage("com.wenda.auth..")
                 .or().resideInAPackage("com.wenda.organization..")
@@ -56,8 +58,7 @@ class AdapterBoundaryArchTest {
                 .or().resideInAPackage("com.wenda.audit..")
                 .or().resideInAPackage("com.wenda.dashboard..")
                 .should().dependOnClassesThat()
-                .haveSimpleNameEndingWith("Adapter")
-                .and().haveSimpleNameNotEndingWith("AdapterTest");
+                .haveSimpleNameEndingWith("Adapter");
         rule.check(classes);
     }
 

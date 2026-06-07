@@ -23,15 +23,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install pnpm
         run: npm install -g pnpm@9
 
-      - name: Install dependencies
+      - name: Generate pnpm lockfile (or use existing)
         working-directory: frontend
-        run: pnpm install --frozen-lockfile || pnpm install
+        run: |
+          if [ ! -f pnpm-lock.yaml ]; then
+            echo "Generating pnpm-lock.yaml from package.json ..."
+            pnpm install --no-frozen-lockfile
+          else
+            pnpm install --frozen-lockfile
+          fi
 
       - name: Type check
         working-directory: frontend
