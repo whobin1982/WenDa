@@ -174,7 +174,7 @@
                         maven-compiler-plugin 3.13.0 + JDK 21 + Spring Boot 3.3.5
                         在某些条件下会默认启用 unnamed classes preview，
                         导致本仓库的 Spring Boot IT 测试类被误判为 unnamed class。
-                        显式 --release 21 + 显式 source/target + 显式 --disable-preview。
+                        显式 release 21 + 显式 source/target + 显式 disable-preview。
                     -->
                     <release>21</release>
                     <source>21</source>
