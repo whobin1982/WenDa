@@ -47,7 +47,14 @@ public class IdempotencyResponseAdvice implements ResponseBodyAdvice<Object> {
         UUID schoolId = RequestContextHolder.schoolId();
         if (schoolId == null || userId == null) return body;
         String compositeKey = schoolId + ":" + userId + ":" + key;
-        int status = response.getStatusCode() == null ? 200 : response.getStatusCode().value();
+        int status = 200;
+        try {
+            if (response instanceof org.springframework.http.server.ServletServerHttpResponse sresp
+                    && sresp.getServletResponse() != null) {
+                status = sresp.getServletResponse().getStatus();
+            }
+        } catch (Exception ignored) {
+        }
         interceptor.recordResponse(compositeKey, status, body == null ? "" : body.toString());
         return body;
     }
