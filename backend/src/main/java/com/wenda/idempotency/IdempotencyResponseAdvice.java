@@ -2,6 +2,7 @@ package com.wenda.idempotency;
 
 import com.wenda.config.WendaProperties;
 import com.wenda.context.RequestContextHolder;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;

@@ -15,8 +15,6 @@ jobs:
     name: SBOM (CycloneDX) + OSG document gate
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      SBOM_PATH: backend/sbom/backend-bom.cdx.json
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,33 +26,42 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Prepare SBOM directory
-        working-directory: backend
-        run: mkdir -p sbom
-
       - name: Generate SBOM (CycloneDX)
         # SBOM 是本 PR 的硬性门禁：失败即 workflow 失败（基线 RG-OSG-001）。
         # Grype / OSV-Scanner / Trivy 等漏洞扫描由后续 PR（DEV-062 / DEV-069）落地；
         # 当前 PR 只完成 SBOM 强制门禁。
         working-directory: backend
         run: |
-          set -e
+          set -euo pipefail
+          # 1) 准备目标目录（无论 mvn 阶段是否提前建）
+          mkdir -p sbom
+          # 2) 生成 SBOM（依赖已 compile；cyclonedx-maven-plugin 在 process-classes 阶段生成）
           mvn -B -ntp org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom \
               -DoutputFormat=json -DoutputName=bom
-          cp -f target/bom.json "$SBOM_PATH"
+          # 3) 拷贝到固定位置（路径相对 working-directory=backend）
+          if [ ! -s target/bom.json ]; then
+            echo "::error::CycloneDX 未生成 target/bom.json"
+            exit 1
+          fi
+          cp -f target/bom.json sbom/backend-bom.cdx.json
 
       - name: Verify SBOM exists (hard gate)
+        working-directory: backend
         run: |
-          test -s "$SBOM_PATH" || { echo "::error::SBOM 缺失或为空：$SBOM_PATH（基线 RG-OSG-001）"; exit 1; }
-          echo "SBOM generated: $(stat -c%s "$SBOM_PATH") bytes"
+          set -euo pipefail
+          SBOM="sbom/backend-bom.cdx.json"
+          test -s "$SBOM" || { echo "::error::SBOM 缺失或为空：$SBOM（基线 RG-OSG-001）"; exit 1; }
+          echo "SBOM generated: $(stat -c%s "$SBOM") bytes"
 
       - name: SBOM license summary
         if: always()
+        working-directory: backend
         run: |
+          SBOM="sbom/backend-bom.cdx.json"
           echo "== SBOM license summary =="
           python3 -c "
           import json
-          data = json.load(open('$SBOM_PATH'))
+          data = json.load(open('$SBOM'))
           from collections import Counter
           c = Counter()
           for comp in data.get('components', []):
@@ -70,7 +77,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-sbom
-          path: ${{ env.SBOM_PATH }}
+          path: backend/sbom/backend-bom.cdx.json
           if-no-files-found: error
 
       - name: OSG document check
