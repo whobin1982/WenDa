@@ -8,15 +8,18 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 import java.util.UUID;
 
 /**
- * 响应体 advice：缓存幂等响应到数据库。
+ * 响应体 advice：把幂等响应持久化到 DB。
  *
- * <p>对未标注 {@link Idempotent} 的接口自动 no-op。
+ * <p>调用 {@link IdempotencyInterceptor#recordResponse} 时传入：compositeKey、
+ * schoolId、userId、method、path、原始 key、status、body。method/path 真实值，
+ * DB 字段 {@code key} 存原始头值。
  */
 @RestControllerAdvice
 public class IdempotencyResponseAdvice implements ResponseBodyAdvice<Object> {
@@ -41,7 +44,8 @@ public class IdempotencyResponseAdvice implements ResponseBodyAdvice<Object> {
         if (!(request instanceof ServletServerHttpRequest sreq)) return body;
         if (request.getMethod() == null
                 || !"POST".equalsIgnoreCase(request.getMethod().name())) return body;
-        String key = sreq.getServletRequest().getHeader(properties.getRequest().getHeader().getIdempotencyKey());
+        HttpServletRequest raw = sreq.getServletRequest();
+        String key = raw.getHeader(properties.getRequest().getHeader().getIdempotencyKey());
         if (key == null || key.isBlank()) return body;
         UUID userId = RequestContextHolder.userId();
         UUID schoolId = RequestContextHolder.schoolId();
@@ -49,13 +53,18 @@ public class IdempotencyResponseAdvice implements ResponseBodyAdvice<Object> {
         String compositeKey = schoolId + ":" + userId + ":" + key;
         int status = 200;
         try {
-            if (response instanceof org.springframework.http.server.ServletServerHttpResponse sresp
+            if (response instanceof ServletServerHttpResponse sresp
                     && sresp.getServletResponse() != null) {
                 status = sresp.getServletResponse().getStatus();
             }
         } catch (Exception ignored) {
         }
-        interceptor.recordResponse(compositeKey, status, body == null ? "" : body.toString());
+        interceptor.recordResponse(compositeKey, schoolId, userId,
+                request.getMethod().name(),
+                raw.getRequestURI(),
+                key,
+                status,
+                body == null ? "" : body.toString());
         return body;
     }
 }

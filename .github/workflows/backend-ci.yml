@@ -51,9 +51,9 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Maven verify (unit + arch + production mock guard)
+      - name: Maven unit + archunit
         working-directory: backend
-        run: mvn -B -ntp -Pcoverage verify
+        run: mvn -B -ntp test
 
       - name: Upload coverage report
         if: always()
@@ -64,30 +64,12 @@ jobs:
           if-no-files-found: ignore
 
   integration-test:
-    name: Flyway Migration + Key API Smoke
+    name: Flyway + Spring Boot IT (real HTTP + Testcontainers Postgres)
     needs: build-and-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: wenda_it
-          POSTGRES_USER: wenda
-          POSTGRES_PASSWORD: wenda
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U wenda -d wenda_it"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     env:
-      SPRING_PROFILES_ACTIVE: test
-      DB_HOST: 127.0.0.1
-      DB_PORT: 5432
-      DB_NAME: wenda_it
-      DB_USER: wenda
-      DB_PASSWORD: wenda
+      SPRING_PROFILES_ACTIVE: it
       JWT_SECRET: it_jwt_secret_at_least_32_bytes_xxxxxxxxxxxx
     steps:
       - name: Checkout
@@ -100,8 +82,14 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Flyway + API smoke
+      - name: Run Failsafe (Flyway + Spring Boot IT)
         working-directory: backend
-        run: |
-          set -e
-          mvn -B -ntp -DskipTests=false -Dtest=ErrorCodeTest,PermissionServiceTest,IfMatchVerifierTest,JwtProviderTest,ApiResponseTest,GlobalExceptionHandlerTest,ProductionMockGuardTest,AdapterExceptionMappingTest,RequestContextFilterTest,AdapterBoundaryArchTest test
+        run: mvn -B -ntp verify -DskipTests=true -DskipITs=false
+
+      - name: Upload IT reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-it-reports
+          path: backend/target/failsafe-reports/
+          if-no-files-found: ignore

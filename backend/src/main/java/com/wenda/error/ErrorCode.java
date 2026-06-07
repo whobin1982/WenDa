@@ -5,18 +5,17 @@ import org.springframework.http.HttpStatus;
 import java.util.Objects;
 
 /**
- * 全量错误码枚举。
+ * 全量错误码枚举（基线：api_error_code_dictionary_v1.0.md + api_contract_v0.2 §2.6/§2.7）。
  *
- * <p>与基线文件对齐：
- * <ul>
- *   <li>{@code doc/baseline/api_error_code_dictionary_v1.0.md}：39 条错误码定义</li>
- *   <li>{@code doc/baseline/api_error_code_matrix_exact_v1.0.md}：错误码 ↔ API 精确矩阵</li>
- *   <li>{@code doc/baseline/api_contract_v0.2.md} §2.6 / §2.7：通用错误码与全量字典</li>
- * </ul>
+ * <p>全量共 <b>40 条</b>：3 条成功码（OK / CREATED / ACCEPTED）+ 37 条错误码。
  *
- * <p><b>硬性约束</b>：新增错误码必须同步更新上述两份基线文件，PR 描述需显式说明
- * 影响范围；CI 中通过 {@code ErrorCodeDictionaryConsistencyTest} 断言枚举与基线文件
- * 字典 1:1 对齐。
+ * <p>新增错误码必须同步更新：
+ * <ol>
+ *   <li>{@code doc/baseline/api_error_code_dictionary_v1.0.md}；</li>
+ *   <li>{@code doc/baseline/api_error_code_matrix_exact_v1.0.md}；</li>
+ *   <li>本枚举；</li>
+ *   <li>{@code ErrorCodeTest.totalCountMatchesBaseline}（断言 = 40）。</li>
+ * </ol>
  *
  * <p>每个枚举项固定 4 个字段：HTTP 状态、英文 code、中文标准 message、是否进入审计。
  */

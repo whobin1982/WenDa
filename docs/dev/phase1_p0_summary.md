@@ -10,7 +10,7 @@
 
 - 仓库工程化初始化：后端 `backend/`（Spring Boot 3.3.x + Java 21 + Maven + Flyway + JdbcTemplate + Spring Security + jjwt）+ 前端 `frontend/`（Vue 3 + TS + Vite + Pinia + Vue Router + Element Plus + Axios + Vitest）。
 - 数据库 Flyway V1 迁移：18 张表，全部带 `school_id` / `tenant_id`，含 `users / schools / colleges / roles / user_role_scopes / school_quality_rules / course_code_policy / school_ai_settings / school_ability_level_settings / growth_warning_rules / idempotency_keys / audit_logs / dashboards_cache / schema_versions` 等。
-- 统一响应 `ApiResponse<T>`、全量错误码字典枚举（39 条）、`BusinessException` + `GlobalExceptionHandler`、`Idempotency-Key` 拦截器 + ResponseAdvice、`If-Match` 校验工具、JWT Provider + 鉴权过滤器、`RequestContext`（持有 `requestId / schoolId / userId / roles`）、`AuditAspect` + `AuditService`、`PermissionService` 基础骨架、Adapter 接口集合（AI / Storage / Scanner / Renderer / Search / Email / TaskQueue / Auth）、`ProductionMockGuard` 启动校验。
+- 统一响应 `ApiResponse<T>`、全量错误码字典枚举（40 条：3 成功 + 37 错误）、`BusinessException` + `GlobalExceptionHandler`、`Idempotency-Key` 拦截器 + ResponseAdvice、`If-Match` 校验工具、JWT Provider + 鉴权过滤器、`RequestContext`（持有 `requestId / schoolId / userId / roles`）、`AuditAspect` + `AuditService`、`PermissionService` 基础骨架、Adapter 接口集合（AI / Storage / Scanner / Renderer / Search / Email / TaskQueue / Auth）、`ProductionMockGuard` 启动校验。
 - **30 个核心 API + 1 套错误码字典 + 1 个权限基础框架 + 1 个审计基础框架**：
   - API-AUTH-001/002/003/004（4）
   - API-ORG-001/002/003/004/005/006（6，含 list 兼容端点）
@@ -123,7 +123,7 @@
 
 ## 9. 测试结果
 
-- **错误码字典一致性**：`ErrorCodeTest` 断言 39 条枚举与基线 1:1 对齐。
+- **错误码字典一致性**：`ErrorCodeTest` 断言 40 条枚举（3 成功 + 37 错误）与基线 1:1 对齐。
 - **ApiResponse 格式**：`ApiResponseTest` 断言 success / created / accepted / error 形状。
 - **GlobalExceptionHandler**：`GlobalExceptionHandlerTest` 断言 5xx/4xx 错误码与 HTTP 状态映射。
 - **JWT Provider**：`JwtProviderTest` 断言 access / refresh Token 签发、解析、短密钥拒绝。

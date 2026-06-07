@@ -1,0 +1,12 @@
+spring:
+  flyway:
+    enabled: true
+    clean-disabled: false
+    locations: classpath:db/migration
+    schemas: public
+    default-schema: public
+  jpa:
+    open-in-view: false
+
+# 该 profile 由 IT 通过 Testcontainers @ServiceConnection 注入实际 datasource；
+# 若未启动 Testcontainers 则由 spring-boot 自动连接 localhost:5432 用于本地。
