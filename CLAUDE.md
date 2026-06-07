@@ -1,11 +1,13 @@
-# gstack
+# Wenda Agent Instructions
 
-## gstack
+## gstack 工作流
 
+- 本仓库要求使用 gstack team mode；若本地未完成接入，项目 hook 会阻止相关 Skill 调用。
 - 所有网页浏览一律使用 gstack 提供的 `/browse` skill。
 - 永远不要使用 `mcp__claude-in-chrome__*` 工具。
-- 可用 skills：
+- 常用 skills：
   - `/office-hours`
+  - `/spec`
   - `/plan-ceo-review`
   - `/plan-eng-review`
   - `/plan-design-review`
@@ -40,6 +42,8 @@
   - `/unfreeze`
   - `/gstack-upgrade`
   - `/learn`
+
+如需面向团队成员的接入说明、安装步骤与故障排查，请先阅读 [README.md](README.md)。
 
 在这个仓库中进行工程工作时，请使用 gstack 工作流。
 
