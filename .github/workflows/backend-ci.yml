@@ -7,6 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# 全工作流默认重试 2 次（应对 Docker pull 等偶发网络问题）
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
