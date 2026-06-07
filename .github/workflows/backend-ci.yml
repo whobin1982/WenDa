@@ -64,12 +64,30 @@ jobs:
           if-no-files-found: ignore
 
   integration-test:
-    name: Flyway + Spring Boot IT (real HTTP + Testcontainers Postgres)
+    name: Flyway + Spring Boot IT (real HTTP + Postgres service)
     needs: build-and-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: wenda_it
+          POSTGRES_USER: wenda
+          POSTGRES_PASSWORD: wenda
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U wenda -d wenda_it"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       SPRING_PROFILES_ACTIVE: it
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: wenda_it
+      DB_USER: wenda
+      DB_PASSWORD: wenda
       JWT_SECRET: it_jwt_secret_at_least_32_bytes_xxxxxxxxxxxx
     steps:
       - name: Checkout

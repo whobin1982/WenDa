@@ -170,27 +170,18 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <!--
-                        显式禁用 Java 21 preview 特性。
-                        maven-compiler-plugin 3.13.0 + JDK 21 + Spring Boot 3.3.5
-                        在某些条件下会默认启用 unnamed classes preview，
-                        导致本仓库的 Spring Boot IT 测试类被误判为 unnamed class。
-                        显式 release 21 + 显式 source/target + 显式 disable-preview。
+                        显式 release 21（不写 source/target）。
+                        Java 21 的 unnamed classes preview 默认 disabled；
+                        显式 release 21 确保 javac 不退化为 lower 版本。
                     -->
                     <release>21</release>
-                    <source>21</source>
-                    <target>21</target>
-                    <compilerArgs>
-                        <arg>--disable-preview</arg>
-                        <arg>-Xlint:-preview</arg>
-                    </compilerArgs>
-                    <testCompilerArgument>--disable-preview</testCompilerArgument>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>-Xshare:off --disable-preview</argLine>
+                    <argLine>-Xshare:off</argLine>
                     <excludes>
                         <exclude>**/*IT.java</exclude>
                     </excludes>
@@ -200,7 +191,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <argLine>-Xshare:off --disable-preview</argLine>
+                    <argLine>-Xshare:off</argLine>
                     <includes>
                         <include>**/*IT.java</include>
                     </includes>

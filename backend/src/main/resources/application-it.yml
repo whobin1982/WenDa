@@ -1,4 +1,11 @@
 spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:wenda_it}?currentSchema=${DB_SCHEMA:public}
+    username: ${DB_USER:wenda}
+    password: ${DB_PASSWORD:wenda}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
   flyway:
     enabled: true
     clean-disabled: false
@@ -8,5 +15,6 @@ spring:
   jpa:
     open-in-view: false
 
-# 该 profile 由 IT 通过 Testcontainers @ServiceConnection 注入实际 datasource；
-# 若未启动 Testcontainers 则由 spring-boot 自动连接 localhost:5432 用于本地。
+# it profile：
+# - 本地：不启动 Testcontainers；连本地 Postgres
+# - CI：services.postgres 注入 DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD
