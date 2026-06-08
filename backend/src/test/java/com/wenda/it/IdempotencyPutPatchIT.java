@@ -53,10 +53,10 @@ class IdempotencyPutPatchIT {
     private static final String USERNAME = "idem-pp-user";
     private static final String PWD = "TestP@ssw0rd!";
 
-    private UUID schoolId;
-    private UUID tenantId;
-    private UUID userId;
-    private String accessToken;
+    private static UUID schoolId;
+    private static UUID tenantId;
+    private static UUID userId;
+    private static String accessToken;
     private static final Object FIX_LOCK = new Object();
     private static volatile boolean FIX_INIT = false;
 
@@ -64,13 +64,13 @@ class IdempotencyPutPatchIT {
         if (FIX_INIT) return;
         synchronized (FIX_LOCK) {
             if (FIX_INIT) return;
-            this.schoolId = UUID.randomUUID();
-            this.tenantId = UUID.randomUUID();
+            schoolId = UUID.randomUUID();
+            tenantId = UUID.randomUUID();
             jdbc.update(
                     "INSERT INTO schools (id, school_code, name, status, tenant_id, version) "
                             + "VALUES (?,?,?, 'ACTIVE', ?, 0)",
                     schoolId, SCHOOL_CODE, "Idempotency PUT IT 学校", tenantId);
-            this.userId = UUID.randomUUID();
+            userId = UUID.randomUUID();
             jdbc.update(
                     "INSERT INTO users (id, school_id, tenant_id, username, display_name, status, user_type, version) "
                             + "VALUES (?,?,?,?,?, 'ACTIVE', 'INTERNAL', 0)",

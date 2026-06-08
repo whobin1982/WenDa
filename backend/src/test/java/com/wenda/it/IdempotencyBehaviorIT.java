@@ -54,16 +54,16 @@ class IdempotencyBehaviorIT {
 
     private static final String FIXTURE_PASSWORD = "TestP@ssw0rd!";
 
-    private UUID schoolAId;
-    private UUID schoolBId;
-    private UUID tenantAId;
-    private UUID tenantBId;
-    private UUID userAId;
-    private UUID userBId;
-    private UUID userCId;
-    private String userAAccessToken;
-    private String userBAccessToken;
-    private String userCAccessToken;
+    private static UUID schoolAId;
+    private static UUID schoolBId;
+    private static UUID tenantAId;
+    private static UUID tenantBId;
+    private static UUID userAId;
+    private static UUID userBId;
+    private static UUID userCId;
+    private static String userAAccessToken;
+    private static String userBAccessToken;
+    private static String userCAccessToken;
     private static final String SCHOOL_A_CODE = "IDEMA";
     private static final String SCHOOL_B_CODE = "IDEMB";
     private static final String USER_A = "idem-user-a";
@@ -77,13 +77,13 @@ class IdempotencyBehaviorIT {
         if (fixturesInitialized) return;
         synchronized (FIX_LOCK) {
             if (fixturesInitialized) return;
-            this.schoolAId = UUID.randomUUID();
-            this.schoolBId = UUID.randomUUID();
-            this.tenantAId = UUID.randomUUID();
-            this.tenantBId = UUID.randomUUID();
-            this.userAId = UUID.randomUUID();
-            this.userBId = UUID.randomUUID();
-            this.userCId = UUID.randomUUID();
+            schoolAId = UUID.randomUUID();
+            schoolBId = UUID.randomUUID();
+            tenantAId = UUID.randomUUID();
+            tenantBId = UUID.randomUUID();
+            userAId = UUID.randomUUID();
+            userBId = UUID.randomUUID();
+            userCId = UUID.randomUUID();
 
             // School A
             jdbc.update(
@@ -101,9 +101,9 @@ class IdempotencyBehaviorIT {
             insertUser(userBId, schoolAId, tenantAId, USER_B, hash);
             insertUser(userCId, schoolBId, tenantBId, USER_C, hash);
 
-            this.userAAccessToken = loginAs(SCHOOL_A_CODE, USER_A);
-            this.userBAccessToken = loginAs(SCHOOL_A_CODE, USER_B);
-            this.userCAccessToken = loginAs(SCHOOL_B_CODE, USER_C);
+            userAAccessToken = loginAs(SCHOOL_A_CODE, USER_A);
+            userBAccessToken = loginAs(SCHOOL_A_CODE, USER_B);
+            userCAccessToken = loginAs(SCHOOL_B_CODE, USER_C);
             fixturesInitialized = true;
         }
     }
