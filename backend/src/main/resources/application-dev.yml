@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:wenda}?currentSchema=${DB_SCHEMA:public}
+    username: ${DB_USER:wenda}
+    password: ${DB_PASSWORD:change_me}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      pool-name: wenda-hikari-dev
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
+    schemas: ${DB_SCHEMA:public}
+    default-schema: ${DB_SCHEMA:public}

@@ -1,0 +1,89 @@
+name: osg-gate
+
+on:
+  push:
+    branches: [main, feature/**]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbom-and-osg:
+    name: SBOM (CycloneDX) + OSG document gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Generate SBOM (CycloneDX)
+        # SBOM 是本 PR 的硬性门禁：失败即 workflow 失败（基线 RG-OSG-001）。
+        # Grype / OSV-Scanner / Trivy 等漏洞扫描由后续 PR（DEV-062 / DEV-069）落地；
+        # 当前 PR 只完成 SBOM 强制门禁。
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          # 1) 准备目标目录（无论 mvn 阶段是否提前建）
+          mkdir -p sbom
+          # 2) 生成 SBOM（依赖已 compile；cyclonedx-maven-plugin 在 process-classes 阶段生成）
+          mvn -B -ntp org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom \
+              -DoutputFormat=json -DoutputName=bom
+          # 3) 拷贝到固定位置（路径相对 working-directory=backend）
+          if [ ! -s target/bom.json ]; then
+            echo "::error::CycloneDX 未生成 target/bom.json"
+            exit 1
+          fi
+          cp -f target/bom.json sbom/backend-bom.cdx.json
+
+      - name: Verify SBOM exists (hard gate)
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          SBOM="sbom/backend-bom.cdx.json"
+          test -s "$SBOM" || { echo "::error::SBOM 缺失或为空：$SBOM（基线 RG-OSG-001）"; exit 1; }
+          echo "SBOM generated: $(stat -c%s "$SBOM") bytes"
+
+      - name: SBOM license summary
+        if: always()
+        working-directory: backend
+        run: |
+          SBOM="sbom/backend-bom.cdx.json"
+          echo "== SBOM license summary =="
+          python3 -c "
+          import json
+          data = json.load(open('$SBOM'))
+          from collections import Counter
+          c = Counter()
+          for comp in data.get('components', []):
+              for lic in (comp.get('licenses') or []):
+                  name = (lic.get('license') or {}).get('name') or (lic.get('license') or {}).get('id') or 'UNKNOWN'
+                  c[name] += 1
+          for n, k in sorted(c.items(), key=lambda x: -x[1]):
+              print(f'{k:5d}  {n}')
+          " 2>/dev/null || echo "(python3 not available)"
+
+      - name: Upload SBOM (informational, not a gate)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-sbom
+          path: backend/sbom/backend-bom.cdx.json
+          if-no-files-found: error
+
+      - name: OSG document check
+        run: |
+          test -f docs/dev/baseline_digest.md || { echo "::error::缺少 baseline_digest.md"; exit 1; }
+          grep -qE "RG-OSG-00[0-9]|RG-OSG-01[0-9]" docs/dev/baseline_digest.md \
+              || { echo "::error::baseline_digest 未引用 RG-OSG-*"; exit 1; }
+          grep -qE "Mock 禁用|prod-mock-disabled|RG-OSG-007" docs/dev/baseline_digest.md \
+              || { echo "::error::baseline_digest 未涵盖 Mock 禁用"; exit 1; }

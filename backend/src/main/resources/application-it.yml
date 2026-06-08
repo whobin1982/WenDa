@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:wenda_it}?currentSchema=${DB_SCHEMA:public}
+    username: ${DB_USER:wenda}
+    password: ${DB_PASSWORD:wenda}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+  flyway:
+    enabled: true
+    clean-disabled: false
+    locations: classpath:db/migration
+    schemas: public
+    default-schema: public
+  jpa:
+    open-in-view: false
+
+# it profile：
+# - 本地：不启动 Testcontainers；连本地 Postgres
+# - CI：services.postgres 注入 DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD

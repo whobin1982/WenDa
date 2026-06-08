@@ -1,0 +1,33 @@
+{
+  "project": {
+    "name": "wenda",
+    "displayName": "AI 原生本科专业建设与学生能力成长平台",
+    "version": "0.1.0",
+    "repository": "https://github.com/whobin1982/Wenda",
+    "defaultBranch": "main"
+  },
+  "stack": {
+    "frontend": "Vue 3 + TypeScript + Vite + Pinia + Vue Router + Element Plus",
+    "backend": "Java 21 + Spring Boot 3.3.x",
+    "database": "PostgreSQL 16",
+    "objectStorage": "S3 兼容 Adapter (本地默认 local；可切换 MinIO / 云 OSS)",
+    "asyncWorker": "PostgreSQL 任务表 + Java Worker",
+    "auth": "JWT (LocalAuthProvider) + 预留 SSO Adapter",
+    "permission": "RBAC + Scope + ABAC",
+    "audit": "PostgreSQL 追加式审计表"
+  },
+  "scripts": {
+    "backend:test": "cd backend && mvn -B -ntp test",
+    "backend:verify": "cd backend && mvn -B -ntp verify",
+    "backend:run:dev": "cd backend && mvn -B -ntp -Dspring-boot.run.profiles=dev spring-boot:run",
+    "frontend:install": "cd frontend && pnpm install --frozen-lockfile",
+    "frontend:test": "cd frontend && pnpm test",
+    "frontend:build": "cd frontend && pnpm build",
+    "frontend:dev": "cd frontend && pnpm dev"
+  },
+  "ci": {
+    "backend": ".github/workflows/backend-ci.yml",
+    "frontend": ".github/workflows/frontend-ci.yml",
+    "osg": ".github/workflows/osg-gate.yml"
+  }
+}

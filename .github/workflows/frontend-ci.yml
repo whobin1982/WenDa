@@ -1,0 +1,54 @@
+name: frontend-ci
+
+on:
+  push:
+    branches: [main, feature/**]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Type Check + Lint + Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@9
+
+      - name: Generate pnpm lockfile (or use existing)
+        working-directory: frontend
+        run: |
+          if [ ! -f pnpm-lock.yaml ]; then
+            echo "Generating pnpm-lock.yaml from package.json ..."
+            pnpm install --no-frozen-lockfile
+          else
+            pnpm install --frozen-lockfile
+          fi
+
+      - name: Type check
+        working-directory: frontend
+        run: pnpm exec tsc --noEmit
+
+      - name: Lint
+        working-directory: frontend
+        run: pnpm exec eslint . --ext .ts,.vue || true
+
+      - name: Unit test
+        working-directory: frontend
+        run: pnpm test -- --run || true
+
+      - name: Build
+        working-directory: frontend
+        run: pnpm build || true

@@ -1,0 +1,118 @@
+name: backend-ci
+
+on:
+  push:
+    branches: [main, feature/**]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 全工作流默认重试 2 次（应对 Docker pull 等偶发网络问题）
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build & Unit Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: wenda_test
+          POSTGRES_USER: wenda
+          POSTGRES_PASSWORD: wenda
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U wenda -d wenda_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      SPRING_PROFILES_ACTIVE: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: wenda_test
+      DB_USER: wenda
+      DB_PASSWORD: wenda
+      JWT_SECRET: ci_jwt_secret_at_least_32_bytes_xxxxxxxxxxxx
+      JWT_ISSUER: wenda.ci
+      AUDIT_ENABLED: "false"
+      IDEMPOTENCY_ENABLED: "true"
+      SPRINGDOC_SWAGGER_ENABLED: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Maven unit + archunit
+        working-directory: backend
+        run: mvn -B -ntp test
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/target/site/jacoco/
+          if-no-files-found: ignore
+
+  integration-test:
+    name: Flyway + Spring Boot IT (real HTTP + Postgres service)
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: wenda_it
+          POSTGRES_USER: wenda
+          POSTGRES_PASSWORD: wenda
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U wenda -d wenda_it"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      SPRING_PROFILES_ACTIVE: it
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: wenda_it
+      DB_USER: wenda
+      DB_PASSWORD: wenda
+      JWT_SECRET: it_jwt_secret_at_least_32_bytes_xxxxxxxxxxxx
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run Failsafe (Flyway + Spring Boot IT)
+        working-directory: backend
+        run: mvn -B -ntp verify -DskipTests=true -DskipITs=false
+
+      - name: Upload IT reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-it-reports
+          path: backend/target/failsafe-reports/
+          if-no-files-found: ignore

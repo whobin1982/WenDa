@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}?currentSchema=${DB_SCHEMA:public}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      pool-name: wenda-hikari-prod
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+# 强制生产禁用 Mock Adapter（与基线 ENG-OSG-001 / RG-OSG-007 一致）
+wenda:
+  adapter:
+    ai-provider: disabled
+    storage: cloud-or-minio
+    scanner: clamav
+    renderer: opensource
+    email: smtp
+  security:
+    prod-mock-disabled: true
+
+management:
+  endpoint:
+    health:
+      show-details: never
