@@ -245,4 +245,19 @@ public class SettingsService {
                 "approvalRecordId", updated.approvalRecordId() == null ? "" : updated.approvalRecordId(),
                 "version", updated.version());
     }
+
+    // ===== helpers（修复 #5：让 Raw 方法从 body 取值时做类型转换）=====
+    private static Boolean asBool(Object v) {
+        return v == null ? null : (v instanceof Boolean b ? b : Boolean.valueOf(v.toString()));
+    }
+
+    private static String asString(Object v) {
+        return v == null ? null : v.toString();
+    }
+
+    private static Integer asInt(Object v) {
+        if (v == null) return null;
+        if (v instanceof Number n) return n.intValue();
+        return Integer.parseInt(v.toString());
+    }
 }

@@ -1,5 +1,6 @@
 package com.wenda.audit;
 
+import com.wenda.error.BusinessException;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
