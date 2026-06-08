@@ -42,13 +42,17 @@ jobs:
         run: pnpm exec tsc --noEmit
 
       - name: Lint
+        # 修复 #4：去除 || true 假绿；ESLint 失败即 workflow 失败。
+        # 首次跑可能因尚未配齐 ESLint 规则而大量 warn；后续 PR 必须保证 0 error。
         working-directory: frontend
-        run: pnpm exec eslint . --ext .ts,.vue || true
+        run: pnpm exec eslint . --ext .ts,.vue
 
       - name: Unit test
+        # 修复 #4：去除 || true 假绿；vitest 失败即 workflow 失败。
         working-directory: frontend
-        run: pnpm test -- --run || true
+        run: pnpm test -- --run
 
       - name: Build
+        # 修复 #4：去除 || true 假绿；vite build 失败即 workflow 失败。
         working-directory: frontend
-        run: pnpm build || true
+        run: pnpm build

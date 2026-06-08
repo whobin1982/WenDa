@@ -120,11 +120,29 @@ public class LocalAuthProvider implements AuthenticationProvider {
         String username = claims.get(JwtProvider.CLAIM_USERNAME, String.class);
         UUID schoolId = UUID.fromString(claims.get(JwtProvider.CLAIM_SCHOOL_ID, String.class));
         UUID tenantId = UUID.fromString(claims.get(JwtProvider.CLAIM_TENANT_ID, String.class));
-        @SuppressWarnings("unchecked")
-        List<String> roles = (List<String>) claims.get(JwtProvider.CLAIM_ROLES);
-        String access = jwtProvider.issueAccessToken(userId, username, schoolId, tenantId, roles);
+
+        // 修复 #3：refresh 重新检查用户当前状态（基线 GOV-002）。
+        // 禁用 / 归档的用户即使有有效 refresh token 也不得继续换发 access token。
+        var userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "账号不存在。");
+        }
+        var user = userOpt.get();
+        if (!"ACTIVE".equals(user.status())) {
+            // 撤销所有该用户的 session，强制下线
+            sessionRepository.revokeAllForUser(userId);
+            throw new BusinessException(ErrorCode.FORBIDDEN, "账号已停用，会话已撤销。");
+        }
+        // 重新拉取当前角色（角色可能已被撤销）
+        List<String> currentRoles = userRepository.listRoleCodes(userId);
+        if (currentRoles.isEmpty()) {
+            sessionRepository.revokeAllForUser(userId);
+            throw new BusinessException(ErrorCode.FORBIDDEN, "账号角色已撤销，会话已撤销。");
+        }
+
+        String access = jwtProvider.issueAccessToken(userId, username, schoolId, tenantId, currentRoles);
         return new AuthenticatedUser(userId.toString(), username, null, schoolId.toString(),
-                tenantId.toString(), roles, access, refreshToken,
+                tenantId.toString(), currentRoles, access, refreshToken,
                 jwtProvider.accessTtlSeconds(), jwtProvider.refreshTtlSeconds());
     }
 

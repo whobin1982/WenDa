@@ -60,9 +60,14 @@ public class AuditAspect {
     }
 
     private static int mapExceptionStatus(Throwable t) {
+        // 修复 #7：BusinessException 的真实 HTTP 状态由其 errorCode 决定
+        // （FORBIDDEN 403 / UNAUTHORIZED 401 / NOT_FOUND 404 / VALIDATION_ERROR 400 /
+        //  IDEMPOTENCY_CONFLICT 409 等）。之前一律记 422 与安全审计统计失真。
+        if (t instanceof BusinessException be) {
+            return be.errorCode().httpStatus().value();
+        }
         String name = t.getClass().getSimpleName();
         return switch (name) {
-            case "BusinessException" -> 422;
             case "AccessDeniedException" -> 403;
             case "AuthenticationException" -> 401;
             default -> 500;
