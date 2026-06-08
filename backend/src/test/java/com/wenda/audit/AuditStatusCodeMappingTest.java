@@ -40,7 +40,9 @@ class AuditStatusCodeMappingTest {
         m.setAccessible(true);
 
         assertEquals(403, (int) m.invoke(null, new org.springframework.security.access.AccessDeniedException("a")));
-        assertEquals(401, (int) m.invoke(null, new org.springframework.security.core.AuthenticationException("a") {}));
+        // Spring Security 提供的具体 AuthenticationException 子类（直接 new，避免匿名类
+        // 造成 getSimpleName() 解析失败）
+        assertEquals(401, (int) m.invoke(null, new org.springframework.security.authentication.BadCredentialsException("a")));
         assertEquals(500, (int) m.invoke(null, new RuntimeException("any")));
     }
 }
