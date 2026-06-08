@@ -70,6 +70,12 @@ junit.xml
 surefire-reports/
 failsafe-reports/
 
+# Seed SQL：禁止 .local / .prod / .real 真实凭据入库；只允许 .example.sql
+backend/src/main/resources/db/seed/*.local.sql
+backend/src/main/resources/db/seed/*.prod.sql
+backend/src/main/resources/db/seed/*.real.sql
+!backend/src/main/resources/db/seed/*.example.sql
+
 # OSG / SBOM / Dependency-Check
 dependency-check-report/
 dependency-check-results*.xml
