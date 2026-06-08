@@ -67,12 +67,12 @@ public class AuditAspect {
         if (t instanceof BusinessException be) {
             return be.errorCode().httpStatus().value();
         }
-        String name = t.getClass().getSimpleName();
-        return switch (name) {
-            case "AccessDeniedException" -> 403;
-            case "AuthenticationException" -> 401;
-            default -> 500;
-        };
+        // 修复 GOV-002 第二轮：用 instanceof 替代 getSimpleName() switch
+        // （之前 BadCredentialsException extends AuthenticationException 但 simpleName 是
+        // "BadCredentialsException"，switch 匹配不到 → fallback default 500）。
+        if (t instanceof org.springframework.security.access.AccessDeniedException) return 403;
+        if (t instanceof org.springframework.security.core.AuthenticationException) return 401;
+        return 500;
     }
 
     private static String extractResourceId(ProceedingJoinPoint pjp, String spEL) {
