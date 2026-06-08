@@ -118,23 +118,28 @@ class FlywayAndApiSmokeIT {
 
     @Test
     void loginRequestBodyIsNotConsumedByIdempotencyFilter() {
-        // 修复 #1 验证：POST /api/v1/auth/login 即使带 Idempotency-Key，
-        // Controller 也能正常解析 @RequestBody（基线 401 因为缺 school，但 body 已到）。
+        // 修复 GOV-002 #3 方案 A：login 不再标 @Idempotent。
+        // 断言：login 带 Idempotency-Key 仍能解析 JSON body 并返回 401（解析失败/认证失败）；
+        // 不进入幂等拦截器持久化逻辑。
         RestClient client = RestClient.builder().baseUrl("http://127.0.0.1:" + port).build();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Idempotency-Key", "it-key-001");
         String json = "{\"schoolCode\":\"NOEXIST\",\"username\":\"u\",\"password\":\"p\"}";
-        HttpEntity<String> req = new HttpEntity<>(json, headers);
         try {
             client.post().uri("/api/v1/auth/login").headers(h -> h.addAll(headers)).body(json).retrieve().toEntity(String.class);
         } catch (org.springframework.web.client.HttpClientErrorException ex) {
-            // 期望 401（UNAUTHORIZED）；证明 body 已被 Spring 解析
+            // 期望 401（UNAUTHORIZED）；证明 body 已被 Spring 解析（不是被幂等过滤器消费了）
             assertEquals(401, ex.getStatusCode().value());
-            // 错误码必须是字典中的 UNAUTHORIZED
             String body = ex.getResponseBodyAsString();
             assertTrue(body.contains("\"code\":\"UNAUTHORIZED\""),
                     "应返回 UNAUTHORIZED；实际：" + body);
         }
+        // 关键断言：login 不应在 idempotency_keys 表中留任何记录
+        Long n = jdbc.queryForObject(
+                "SELECT count(*) FROM idempotency_keys WHERE path = '/api/v1/auth/login'",
+                Long.class);
+        assertEquals(Long.valueOf(0L), n,
+                "login 端点不应向 idempotency_keys 写入任何记录（@Idempotent 已移除）");
     }
 }

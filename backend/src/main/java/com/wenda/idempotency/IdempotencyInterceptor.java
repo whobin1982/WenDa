@@ -135,6 +135,49 @@ public class IdempotencyInterceptor implements HandlerInterceptor {
     }
 
     /**
+     * 异常 / 非 2xx 路径：清理 in-flight 占位（基线 GOV-002 修复 #1）。
+     *
+     * <p>业务异常由 controller 抛出，会绕过 ResponseBodyAdvice 直接到
+     * {@link GlobalExceptionHandler}；此时由本钩子清理 inFlight，
+     * 避免"同 key 残留占位导致后续请求命中空 body"。
+     */
+    @Override
+    public void afterCompletion(HttpServletRequest request,
+                                jakarta.servlet.http.HttpServletResponse response,
+                                Object handler, Exception ex) {
+        if (!(handler instanceof HandlerMethod hm)) return;
+        Idempotent anno = hm.getMethodAnnotation(Idempotent.class);
+        if (anno == null && hm.getBeanType().getAnnotation(Idempotent.class) == null) return;
+        if (!properties.getIdempotency().isEnabled()) return;
+
+        // 任何带 Idempotency-Key 但未成功持久化（业务异常 / 非 2xx）的请求，清理占位
+        String key = request.getHeader(properties.getRequest().getHeader().getIdempotencyKey());
+        if (!StringUtils.hasText(key)) return;
+        UUID userId = RequestContextHolder.userId();
+        UUID schoolId = RequestContextHolder.schoolId();
+        if (userId == null || schoolId == null) return;
+
+        int status = 200;
+        try {
+            status = response.getStatus();
+        } catch (Exception ignored) {
+        }
+        if (ex != null || status >= 300) {
+            String compositeKey = schoolId + ":" + userId + ":" + key;
+            inFlight.remove(compositeKey);
+        }
+    }
+
+    /**
+     * 由 {@link IdempotencyResponseAdvice} 在非 2xx 响应时显式调用清理 inFlight。
+     */
+    public void clearInFlight(String compositeKey) {
+        if (compositeKey != null) {
+            inFlight.remove(compositeKey);
+        }
+    }
+
+    /**
      * 业务完成后由 {@link IdempotencyResponseAdvice} 调用：把响应写回 DB。
      *
      * @param compositeKey in-memory 缓存 key（与 preHandle 一致）

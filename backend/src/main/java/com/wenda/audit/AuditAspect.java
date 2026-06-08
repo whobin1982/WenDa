@@ -1,5 +1,6 @@
 package com.wenda.audit;
 
+import com.wenda.error.BusinessException;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -60,13 +61,18 @@ public class AuditAspect {
     }
 
     private static int mapExceptionStatus(Throwable t) {
-        String name = t.getClass().getSimpleName();
-        return switch (name) {
-            case "BusinessException" -> 422;
-            case "AccessDeniedException" -> 403;
-            case "AuthenticationException" -> 401;
-            default -> 500;
-        };
+        // 修复 #7：BusinessException 的真实 HTTP 状态由其 errorCode 决定
+        // （FORBIDDEN 403 / UNAUTHORIZED 401 / NOT_FOUND 404 / VALIDATION_ERROR 400 /
+        //  IDEMPOTENCY_CONFLICT 409 等）。之前一律记 422 与安全审计统计失真。
+        if (t instanceof BusinessException be) {
+            return be.errorCode().httpStatus().value();
+        }
+        // 修复 GOV-002 第二轮：用 instanceof 替代 getSimpleName() switch
+        // （之前 BadCredentialsException extends AuthenticationException 但 simpleName 是
+        // "BadCredentialsException"，switch 匹配不到 → fallback default 500）。
+        if (t instanceof org.springframework.security.access.AccessDeniedException) return 403;
+        if (t instanceof org.springframework.security.core.AuthenticationException) return 401;
+        return 500;
     }
 
     private static String extractResourceId(ProceedingJoinPoint pjp, String spEL) {

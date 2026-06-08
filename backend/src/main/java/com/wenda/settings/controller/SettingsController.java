@@ -66,17 +66,10 @@ public class SettingsController {
     public ResponseEntity<ApiResponse<Object>> updateAI(@RequestBody Map<String, Object> body,
                                                         HttpServletRequest request) {
         long v = ifMatchOrZero(request);
+        // 修复 #7：把整个 body map 直接传给 service，service 用 containsKey 区分
+        // "未传" 与 "传了 false"，避免局部更新意外重置布尔配置。
         return ResponseEntity.ok(ApiResponse.ok(
-                settingsService.updateAISettings(
-                        asString(body.get("externalProviderCode")),
-                        asString(body.get("externalModelId")),
-                        asBool(body.get("externalEnabled")),
-                        asBool(body.get("studentDataOutbound")),
-                        asString(body.get("promptVersion")),
-                        asString(body.get("schemaVersion")),
-                        asInt(body.get("quotaPerDay")),
-                        asString(body.get("approvalRecordId")),
-                        v),
+                settingsService.updateAISettingsRaw(body, v),
                 RequestContextHolder.requestId()));
     }
 
@@ -108,10 +101,7 @@ public class SettingsController {
                                                               HttpServletRequest request) {
         long v = ifMatchOrZero(request);
         return ResponseEntity.ok(ApiResponse.ok(
-                settingsService.updateWarningRules(
-                        asString(body.get("rulesJson")),
-                        asBool(body.get("notificationEmail")),
-                        v),
+                settingsService.updateWarningRulesRaw(body, v),
                 RequestContextHolder.requestId()));
     }
 
@@ -127,11 +117,7 @@ public class SettingsController {
                                                                  HttpServletRequest request) {
         long v = ifMatchOrZero(request);
         return ResponseEntity.ok(ApiResponse.ok(
-                settingsService.updateCourseCodePolicy(
-                        asBool(body.get("allowTempCode")),
-                        asString(body.get("tempCodePrefix")),
-                        asInt(body.get("tempCodeTtlDays")),
-                        v),
+                settingsService.updateCourseCodePolicyRaw(body, v),
                 RequestContextHolder.requestId()));
     }
 
@@ -146,10 +132,7 @@ public class SettingsController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> putAIPolicy(
             @RequestBody Map<String, Object> body) {
         return ResponseEntity.ok(ApiResponse.ok(
-                settingsService.updateAIPolicy(
-                        asBool(body.get("externalEnabled")),
-                        asString(body.get("approvalRecordId")),
-                        asBool(body.get("studentDataOutbound"))),
+                settingsService.updateAIPolicyRaw(body),
                 RequestContextHolder.requestId()));
     }
 

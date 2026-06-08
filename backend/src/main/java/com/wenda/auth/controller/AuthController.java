@@ -41,7 +41,10 @@ public class AuthController {
 
     public record RefreshRequest(@NotBlank String refreshToken) {}
 
-    @Idempotent
+    // 修复 GOV-002 #3 方案 A：登录不使用幂等。
+    // 原因：登录 token 场景不适合缓存首次响应（重复登录返回新 token 是可接受行为）；
+    // 缓存登录 token 还会引入安全与会话语义问题（refresh 撤销、token 轮换、IP 校验等
+    // 会与缓存冲突）。@Idempotency-Key 留给创建类业务接口使用。
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthenticationProvider.AuthenticatedUser>> login(
             @Valid @RequestBody LoginRequest req) {

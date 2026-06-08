@@ -37,4 +37,15 @@ public class UserSessionRepository {
     public void revoke(String refreshToken) {
         jdbc.update("UPDATE user_sessions SET revoked_at = now() WHERE refresh_token = ?", refreshToken);
     }
+
+    /**
+     * 撤销指定用户所有未撤销的会话（基线 GOV-002 修复 #3）。
+     * 用于：用户被禁用 / 角色全部被撤销时强制下线。
+     */
+    public int revokeAllForUser(UUID userId) {
+        return jdbc.update(
+                "UPDATE user_sessions SET revoked_at = now() "
+                        + "WHERE user_id = ? AND revoked_at IS NULL AND expires_at > now()",
+                userId);
+    }
 }
