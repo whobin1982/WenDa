@@ -3,16 +3,21 @@ import { onMounted, ref } from 'vue'
 import { auditApi } from '@/api/settings'
 import type { PageResp } from '@/api/school'
 
+// data 来自 auditApi.search 的匿名返回类型；这里显式声明为 PageResp 宽类型
 const data = ref<PageResp<Record<string, unknown>> | null>(null)
 const filter = ref({ action: '', resourceType: '' })
 
 async function refresh() {
-  data.value = await auditApi.search({
+  // 修复 GOV-002 #4：vue-tsc 严格模式下，
+  // auditApi.search 返回的匿名结构（无 sort/order）不能直接赋给 PageResp<T>。
+  // 这里强制按 PageResp 宽类型转换（items/total 已足够渲染）。
+  const resp = (await auditApi.search({
     action: filter.value.action || undefined,
     resourceType: filter.value.resourceType || undefined,
     page: 1,
     pageSize: 20
-  })
+  })) as unknown as PageResp<Record<string, unknown>>
+  data.value = resp
 }
 
 onMounted(refresh)
@@ -48,3 +53,4 @@ onMounted(refresh)
     </el-card>
   </div>
 </template>
+
